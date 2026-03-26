@@ -58,7 +58,6 @@ bool COLA<T,N>::Push(T VAL){
     Tail++;
 
     return true;
-    
 }
 
 template<class T, int N>
