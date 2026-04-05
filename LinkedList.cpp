@@ -22,7 +22,7 @@ NODE<T>::NODE(T VAL){
 
 template<class T>
 struct cForwardList {
-	int NELEM;
+	unsigned long NELEM;
 	NODE<T>* HEAD;
 
     cForwardList();
