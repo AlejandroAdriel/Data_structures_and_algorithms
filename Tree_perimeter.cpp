@@ -165,13 +165,13 @@ std::vector<int> CBinTree::getPerimeter() {
         Node* n = s_leaves.top();
         s_leaves.pop();
 
-        if (!n->nodes[0] && !n->nodes[1]) {
-            if (n != root) perim.push_back(n->value);
+        if (!n->nodes[0] || !n->nodes[1]) {
+            if (n != root && n->value != perim.back()) perim.push_back(n->value);
         }
-        else {
-            if (n->nodes[1]) s_leaves.push(n->nodes[1]);
-            if (n->nodes[0]) s_leaves.push(n->nodes[0]);
-        }
+   
+        if (n->nodes[1]) s_leaves.push(n->nodes[1]);
+        if (n->nodes[0]) s_leaves.push(n->nodes[0]);
+    
     }
 
     std::stack<int> s;
