@@ -3,6 +3,7 @@
 Heap basado en std::vector 
 
 *******************************************************************************/
+
 #include <iostream>
 #include <vector>
 #include <functional>
@@ -37,9 +38,9 @@ struct CHeap {
         int n = arr.size() - 1;
         
         while((n > 0) && (cmp(arr[n], arr[(n-1) / 2]))){
-            T temp = arr[n];
+            T tmp = arr[n];
             arr[n] = arr[(n-1) / 2];
-            arr[(n-1) / 2] = temp;
+            arr[(n-1) / 2] = tmp;
             
             n = (n-1) / 2;
         }
@@ -50,9 +51,9 @@ struct CHeap {
         
         int i = 0;
         
-        T temp_pop = arr[i];
+        T tmp = arr[i];
         arr[i] = arr[arr.size()-1];
-        arr[arr.size()-1] = temp_pop;
+        arr[arr.size()-1] = tmp;
         
         arr.pop_back();
         
@@ -65,9 +66,9 @@ struct CHeap {
             }
             
             if (cmp(arr[menor], arr[i])){
-                T temp_shift = arr[menor];
+                T tmp = arr[menor];
                 arr[menor] = arr[i];
-                arr[i] = temp_shift;
+                arr[i] = tmp;
                 
                 i = menor;
             }
