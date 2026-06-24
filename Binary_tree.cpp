@@ -187,10 +187,12 @@ bool CBinTree::rem(int x) {
 }
 
 /* rep: Encuentra el nodo reemplazo (predecesor o sucesor) usando 'brep'
- * para alternar y mantener el árbol balanceado heurísticamente. */
+ para alternar y mantener el árbol balanceado heurísticamente, sin salirse al puntero nulo */
 Node** CBinTree::rep(Node** p) {
     p = &((*p)->nodes[brep]);
-    for (;*p;p = &((*p)->nodes[!brep]));
+    while ((*p)->nodes[!brep]) {
+        p = &((*p)->nodes[!brep]);
+    }
     brep = !brep;
     return p;
 }
