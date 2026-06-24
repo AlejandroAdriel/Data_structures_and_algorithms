@@ -1,20 +1,34 @@
 /******************************************************************************
 
-Heap
+Heap basado en std::vector 
 
 *******************************************************************************/
 #include <iostream>
 #include <vector>
-#include <algorithm>
 #include <functional>
 
-template<typename T, typename C>
+template<class T>
+struct asc {
+    bool operator()(T a, T b){
+        return a > b;
+    }
+};
+
+template<class T>
+struct des {
+    bool operator()(T a, T b){
+        return a < b;
+    }
+};
+
+template<typename T, typename Ord>
 struct CHeap {
 
     std::vector<T> arr;
-    C cmp;
+    Ord cmp;
     
     T top(){
+        if(arr.empty()) return T();
         return arr.front();
     }   
     
@@ -22,9 +36,11 @@ struct CHeap {
         arr.push_back(x);    
         int n = arr.size() - 1;
         
-        while((n > 0) && (cmp(arr[n] , arr[(n-1) / 2]))){
+        while((n > 0) && (cmp(arr[n], arr[(n-1) / 2]))){
+            T temp = arr[n];
+            arr[n] = arr[(n-1) / 2];
+            arr[(n-1) / 2] = temp;
             
-            std::swap(arr[n], arr[(n-1) / 2] );
             n = (n-1) / 2;
         }
     }
@@ -33,21 +49,26 @@ struct CHeap {
         if(arr.empty()) return;
         
         int i = 0;
-
-        std::swap(arr[i], arr[arr.size()-1]);
+        
+        T temp_pop = arr[i];
+        arr[i] = arr[arr.size()-1];
+        arr[arr.size()-1] = temp_pop;
+        
         arr.pop_back();
         
-        while(i*2 +1 < arr.size()){
-            
-            int menor = i*2 +1;
-            int derecho = i*2 +2;
+        while(i * 2 + 1 < arr.size()){
+            int menor = i * 2 + 1;
+            int derecho = i * 2 + 2;
             
             if((derecho < arr.size()) && (cmp(arr[derecho], arr[menor]))){
                 menor = derecho;
             }
             
             if (cmp(arr[menor], arr[i])){
-                std::swap(arr[menor] , arr[i]);
+                T temp_shift = arr[menor];
+                arr[menor] = arr[i];
+                arr[i] = temp_shift;
+                
                 i = menor;
             }
             else{
@@ -57,59 +78,67 @@ struct CHeap {
     }
     
     void print(){
-        for(typename std::vector<T>::iterator it = arr.begin(); it != arr.end(); it++){
-            std::cout<< *it << " ";
+        if(arr.empty()) {
+            std::cout << "vacio" << std::endl;
+            return;
         }
-        std::cout<<std::endl;
+        for(typename std::vector<T>::iterator it = arr.begin(); it != arr.end(); it++){
+            std::cout << *it << " ";
+        }
+        std::cout << std::endl;
     }
-
 };
 
 int main() {
-    //CHeap<int, std::less<int>> heap;
-    CHeap<int, std::greater<int>> heap;
-    
-    std::vector<int> valores = {45, 20, 14, 31, 7, 11, 13, 2};
+    int valores[] = {45, 20, 14, 31, 7, 11, 13, 2};
+    int n_valores = sizeof(valores) / sizeof(valores[0]);
 
-    // 1. Prueba de Inserción (Push)
-    std::cout << "\n[PASO 1] Insertando elementos..." << std::endl;
-    std::cout << "-------------------------------------------" << std::endl;
-    for (int v : valores) {
-        std::cout << "Agregando: " << v;
-        heap.push(v);
-        std::cout << " | Vector actual: ";
-        heap.print(); 
-    }
-
-    // 2. Estado final del Heap
-    std::cout << "\n[ESTADO FINAL DEL HEAP]" << std::endl;
-    std::cout << "Raiz" << heap.top() << std::endl;
-    std::cout << "Tamano: " << heap.arr.size() << " elementos." << std::endl;
-
-    // 3. Extracción (Pop) con Verificación de Orden
-    std::cout << "\n[PASO 2] Extrayendo elementos (Pop)..." << std::endl;
-    std::cout << "-------------------------------------------" << std::endl;
-    
-    int contador = 1;
-    while (!heap.arr.empty()) {
-        int minimo_esperado = heap.top();
-        std::cout << contador << ". Extraido: " << minimo_esperado;
-        
-        heap.pop();
-        
-        std::cout << " | Nuevo vector: ";
-        if (heap.arr.empty()) std::cout << "[VACIO]";
-        else heap.print();
-        
-        contador++;
-    }
-
-    // 4. Prueba de Seguridad
-    std::cout << "\n-------------------------------------------" << std::endl;
-    std::cout << "[PASO 3] Intentando Pop en Heap vacio..." << std::endl;
-    heap.pop(); 
-    std::cout << "Resultado: El programa manejo el error correctamente." << std::endl;
     std::cout << "===========================================" << std::endl;
+    std::cout << "                  MIN HEAP                 " << std::endl;
+    std::cout << "===========================================" << std::endl;
+    
+    CHeap<int, std::less<int>> min_heap;
+    //CHeap<int, des<int> > min_heap;
+    
+    for (int i = 0; i < n_valores; i++) {
+        min_heap.push(valores[i]);
+    }
+
+    int esperados_min[] = {2, 7, 11, 13, 14, 20, 31, 45};
+    int idx = 0;
+
+    while (!min_heap.arr.empty()) {
+        int esperado = esperados_min[idx++];
+        int real = min_heap.top();
+        
+        std::cout << "Esperado: " << esperado << " | Obtenido: " << real << std::endl;
+        
+        min_heap.pop();
+    }
+
+
+    std::cout << "\n===========================================" << std::endl;
+    std::cout << "                  MAX HEAP                    " << std::endl;
+    std::cout << "===========================================" << std::endl;
+
+    CHeap<int, std::greater<int>> max_heap;
+    //CHeap<int, asc<int>> max_heap;
+    
+    for (int i = 0; i < n_valores; i++) {
+        max_heap.push(valores[i]);
+    }
+
+    int esperados_max[] = {45, 31, 20, 14, 13, 11, 7, 2};
+    idx = 0;
+
+    while (!max_heap.arr.empty()) {
+        int esperado = esperados_max[idx++];
+        int real = max_heap.top();
+        
+        std::cout << "Esperado: " << esperado << " | Obtenido: " << real << std::endl;
+        
+        max_heap.pop();
+    }
 
     return 0;
 }
