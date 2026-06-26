@@ -294,7 +294,16 @@ int main() {
     names_table.print();
 
     //evaluar homogeneidad
+    
+    /*
+    
+    67 → muchas colisiones
+    71 → colisiones moderadas-altas
+    79 → colisiones moderadas
+    97 → pocas colisiones
+    101 → muy pocas colisiones
 
+    */
     //calculamos otro size para ir probando
     const unsigned int table_size = 50;
 
