@@ -7,6 +7,7 @@ Heap basado en nodos
 #include <iostream>
 #include <functional>
 #include <deque>
+#include <queue>
 
 template <typename T>
 struct Node {
@@ -69,7 +70,7 @@ private:
     }
 
     void sift_up(int n) {
-        while (n > 0 && cmp(tree_nodes[n]->value, tree_nodes[(n - 1) / 2]->value)) {
+        while (n > 0 && cmp(tree_nodes[(n - 1) / 2]->value, tree_nodes[n]->value)) {
             int p_idx = (n - 1) / 2;
             swap_nodes(n, p_idx);
             n = p_idx;
@@ -82,11 +83,11 @@ private:
             int hijo_elegido = i * 2 + 1;
             int derecho = i * 2 + 2;
 
-            if (derecho < size && cmp(tree_nodes[derecho]->value, tree_nodes[hijo_elegido]->value)) {
+            if (derecho < size && cmp(tree_nodes[hijo_elegido]->value, tree_nodes[derecho]->value)) {
                 hijo_elegido = derecho;
             }
 
-            if (cmp(tree_nodes[hijo_elegido]->value, tree_nodes[i]->value)) {
+            if (cmp(tree_nodes[i]->value, tree_nodes[hijo_elegido]->value)) {
                 swap_nodes(hijo_elegido, i);
                 i = hijo_elegido;
             }
@@ -151,26 +152,39 @@ public:
             return;
         }
 
-        int last_idx = tree_nodes.size() - 1;
-        swap_nodes(last_idx, 0);
+        int curr_idx = 0;
 
-        Node<T>* last = tree_nodes.back();
-        
-        int n = tree_nodes.size() - 1;
-        int p_idx = (n - 1) / 2;
-        
+        while (curr_idx * 2 + 1 < tree_nodes.size()) {
+            int hijo_elegido = curr_idx * 2 + 1;
+            int derecho = curr_idx * 2 + 2;
+
+            if (derecho < tree_nodes.size() && cmp(tree_nodes[hijo_elegido]->value, tree_nodes[derecho]->value)) {
+                hijo_elegido = derecho;
+            }
+
+            if (cmp(tree_nodes[curr_idx]->value, tree_nodes[hijo_elegido]->value)) {
+                swap_nodes(hijo_elegido, curr_idx);
+                curr_idx = hijo_elegido;
+            }
+            else {
+                swap_nodes(curr_idx * 2 + 1, curr_idx);
+                curr_idx = curr_idx * 2 + 1;
+            }
+        }
+
+        int p_idx = (curr_idx - 1) / 2;
         Node<T>* parentNode = tree_nodes[p_idx];
 
-        if (n % 2 != 0) {
+        if (curr_idx % 2 != 0) {
             parentNode->nodes[0] = nullptr;
         }
         else {
             parentNode->nodes[1] = nullptr;
         }
 
-        delete last;
-        
-        tree_nodes.pop_back();
+        delete tree_nodes[curr_idx];
+
+        tree_nodes.erase(tree_nodes.begin() + curr_idx);
 
         sift_down(0);
     }
@@ -184,10 +198,12 @@ int main() {
     std::cout << "                  MIN HEAP                 " << std::endl;
     std::cout << "===========================================" << std::endl;
 
-    CHeap<int, std::less<int>> min_heap;
+    CHeap<int, std::greater<int>> min_heap;
+    std::priority_queue<int, std::vector<int>, std::greater<int>> std_min_heap;
 
     for (int i = 0; i < n_valores; i++) {
         min_heap.push(valores[i]);
+        std_min_heap.push(valores[i]);
     }
 
     int esperados_min[] = { 2, 7, 11, 13, 14, 20, 31, 45 };
@@ -195,21 +211,27 @@ int main() {
 
     while (!min_heap.empty()) {
         int esperado = esperados_min[idx++];
-        int real = min_heap.top();
+        int mi_heap_real = min_heap.top();
+        int std_heap_real = std_min_heap.top();
 
-        std::cout << "Esperado: " << esperado << " | Obtenido: " << real << std::endl;
+        std::cout << "Esperado: " << esperado
+            << " | Mi Heap: " << mi_heap_real
+            << " | STL Heap: " << std_heap_real << std::endl;
 
         min_heap.pop();
+        std_min_heap.pop();
     }
 
     std::cout << "\n===========================================" << std::endl;
     std::cout << "                  MAX HEAP                    " << std::endl;
     std::cout << "===========================================" << std::endl;
 
-    CHeap<int, std::greater<int>> max_heap;
+    CHeap<int, std::less<int>> max_heap;
+    std::priority_queue<int> std_max_heap;
 
     for (int i = 0; i < n_valores; i++) {
         max_heap.push(valores[i]);
+        std_max_heap.push(valores[i]);
     }
 
     int esperados_max[] = { 45, 31, 20, 14, 13, 11, 7, 2 };
@@ -217,12 +239,16 @@ int main() {
 
     while (!max_heap.empty()) {
         int esperado = esperados_max[idx++];
-        int real = max_heap.top();
+        int mi_heap_real = max_heap.top();
+        int std_heap_real = std_max_heap.top();
 
-        std::cout << "Esperado: " << esperado << " | Obtenido: " << real << std::endl;
+        std::cout << "Esperado: " << esperado
+            << " | Mi Heap: " << mi_heap_real
+            << " | STL Heap: " << std_heap_real << std::endl;
 
         max_heap.pop();
+        std_max_heap.pop();
     }
 
     return 0;
-}
+};

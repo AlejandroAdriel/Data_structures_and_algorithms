@@ -4,9 +4,11 @@ Heap basado en nodos (Con parent y con deque de incompletos)
 
 *******************************************************************************/
 
+
 #include <iostream>
 #include <functional>
 #include <deque>
+#include <queue>
 
 template <typename T>
 struct Node {
@@ -69,7 +71,7 @@ private:
     }
 
     void sift_up(Node<T>* node) {
-        while (node->parent && cmp(node->value, node->parent->value)) {
+        while (node->parent && cmp(node->parent->value, node->value)) {
             swap_nodes(node, node->parent);
         }
     }
@@ -79,10 +81,10 @@ private:
         while (node->nodes[0] || node->nodes[1]) {
             Node<T>* best = node;
 
-            if (node->nodes[0] && cmp(node->nodes[0]->value, best->value)) {
+            if (node->nodes[0] && cmp(best->value, node->nodes[0]->value)) {
                 best = node->nodes[0];
             }
-            if (node->nodes[1] && cmp(node->nodes[1]->value, best->value)) {
+            if (node->nodes[1] && cmp(best->value, node->nodes[1]->value)) {
                 best = node->nodes[1];
             }
 
@@ -150,23 +152,52 @@ public:
             return;
         }
 
-        Node<T>* last = incomplete_nodes.back();
-        incomplete_nodes.pop_back();
+        Node<T>* curr = root;
+        while (curr->nodes[0] || curr->nodes[1]) {
+            Node<T>* best = curr;
 
-        swap_nodes(last, root);
+            if (curr->nodes[0] && cmp(best->value, curr->nodes[0]->value)) {
+                best = curr->nodes[0];
+            }
+            if (curr->nodes[1] && cmp(best->value, curr->nodes[1]->value)) {
+                best = curr->nodes[1];
+            }
 
-        Node<T>* p = last->parent;
+            if (best == curr) {
+                best = curr->nodes[0] ? curr->nodes[0] : curr->nodes[1];
+            }
+
+            swap_nodes(best, curr);
+        }
+
+        Node<T>* p = curr->parent;
         if (p) {
-            if (p->nodes[1] == last) {
+            if (p->nodes[1] == curr) {
                 p->nodes[1] = nullptr;
-                incomplete_nodes.push_front(p);
             }
             else {
                 p->nodes[0] = nullptr;
             }
         }
 
-        delete last;
+        for (auto it = incomplete_nodes.begin(); it != incomplete_nodes.end(); ++it) {
+            if (*it == curr) {
+                incomplete_nodes.erase(it);
+                break;
+            }
+        }
+
+        if (p) {
+            bool enc = false;
+            for (auto n : incomplete_nodes) {
+                if (n == p) { enc = true; break; }
+            }
+            if (!enc) {
+                incomplete_nodes.push_front(p);
+            }
+        }
+
+        delete curr;
         tamano--;
 
         sift_down(root);
@@ -181,10 +212,12 @@ int main() {
     std::cout << "                  MIN HEAP                 " << std::endl;
     std::cout << "===========================================" << std::endl;
 
-    CHeap<int, std::less<int>> min_heap;
+    CHeap<int, std::greater<int>> min_heap;
+    std::priority_queue<int, std::vector<int>, std::greater<int>> std_min_heap;
 
     for (int i = 0; i < n_valores; i++) {
         min_heap.push(valores[i]);
+        std_min_heap.push(valores[i]);
     }
 
     int esperados_min[] = { 2, 7, 11, 13, 14, 20, 31, 45 };
@@ -192,21 +225,27 @@ int main() {
 
     while (!min_heap.empty()) {
         int esperado = esperados_min[idx++];
-        int real = min_heap.top();
+        int mi_heap_real = min_heap.top();
+        int std_heap_real = std_min_heap.top();
 
-        std::cout << "Esperado: " << esperado << " | Obtenido: " << real << std::endl;
+        std::cout << "Esperado: " << esperado
+            << " | Mi Heap: " << mi_heap_real
+            << " | STL Heap: " << std_heap_real << std::endl;
 
         min_heap.pop();
+        std_min_heap.pop();
     }
 
     std::cout << "\n===========================================" << std::endl;
     std::cout << "                  MAX HEAP                    " << std::endl;
     std::cout << "===========================================" << std::endl;
 
-    CHeap<int, std::greater<int>> max_heap;
+    CHeap<int, std::less<int>> max_heap;
+    std::priority_queue<int> std_max_heap;
 
     for (int i = 0; i < n_valores; i++) {
         max_heap.push(valores[i]);
+        std_max_heap.push(valores[i]);
     }
 
     int esperados_max[] = { 45, 31, 20, 14, 13, 11, 7, 2 };
@@ -214,12 +253,16 @@ int main() {
 
     while (!max_heap.empty()) {
         int esperado = esperados_max[idx++];
-        int real = max_heap.top();
+        int mi_heap_real = max_heap.top();
+        int std_heap_real = std_max_heap.top();
 
-        std::cout << "Esperado: " << esperado << " | Obtenido: " << real << std::endl;
+        std::cout << "Esperado: " << esperado
+            << " | Mi Heap: " << mi_heap_real
+            << " | STL Heap: " << std_heap_real << std::endl;
 
         max_heap.pop();
+        std_max_heap.pop();
     }
 
     return 0;
-}
+};

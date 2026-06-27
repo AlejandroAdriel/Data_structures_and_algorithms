@@ -7,6 +7,7 @@ Heap basado en std::vector
 #include <iostream>
 #include <vector>
 #include <functional>
+#include <queue>
 
 template<class T>
 struct asc {
@@ -41,7 +42,7 @@ struct CHeap {
         arr.push_back(x);
         int n = arr.size() - 1;
 
-        while ((n > 0) && (cmp(arr[n], arr[(n - 1) / 2]))) {
+        while ((n > 0) && (cmp(arr[(n - 1) / 2], arr[n]))) {
             T tmp = arr[n];
             arr[n] = arr[(n - 1) / 2];
             arr[(n - 1) / 2] = tmp;
@@ -65,11 +66,11 @@ struct CHeap {
             int hijo_elegido = i * 2 + 1;
             int derecho = i * 2 + 2;
 
-            if ((derecho < arr.size()) && (cmp(arr[derecho], arr[hijo_elegido]))) {
+            if ((derecho < arr.size()) && (cmp(arr[hijo_elegido], arr[derecho]))) {
                 hijo_elegido = derecho;
             }
 
-            if (cmp(arr[hijo_elegido], arr[i])) {
+            if (cmp(arr[i], arr[hijo_elegido])) {
                 T tmp = arr[hijo_elegido];
                 arr[hijo_elegido] = arr[i];
                 arr[i] = tmp;
@@ -102,10 +103,12 @@ int main() {
     std::cout << "                  MIN HEAP                 " << std::endl;
     std::cout << "===========================================" << std::endl;
 
-    CHeap<int, std::less<int>> min_heap;
+    CHeap<int, asc<int>> min_heap;
+    std::priority_queue<int, std::vector<int>, std::greater<int>> std_min_heap;
 
     for (int i = 0; i < n_valores; i++) {
         min_heap.push(valores[i]);
+        std_min_heap.push(valores[i]);
     }
 
     int esperados_min[] = { 2, 7, 11, 13, 14, 20, 31, 45 };
@@ -113,21 +116,27 @@ int main() {
 
     while (!min_heap.empty()) {
         int esperado = esperados_min[idx++];
-        int real = min_heap.top();
+        int mi_heap_real = min_heap.top();
+        int std_heap_real = std_min_heap.top();
 
-        std::cout << "Esperado: " << esperado << " | Obtenido: " << real << std::endl;
+        std::cout << "Esperado: " << esperado
+            << " | Mi Heap: " << mi_heap_real
+            << " | STL Heap: " << std_heap_real << std::endl;
 
         min_heap.pop();
+        std_min_heap.pop();
     }
 
     std::cout << "\n===========================================" << std::endl;
     std::cout << "                  MAX HEAP                    " << std::endl;
     std::cout << "===========================================" << std::endl;
 
-    CHeap<int, std::greater<int>> max_heap;
+    CHeap<int, des<int>> max_heap;
+    std::priority_queue<int> std_max_heap;
 
     for (int i = 0; i < n_valores; i++) {
         max_heap.push(valores[i]);
+        std_max_heap.push(valores[i]);
     }
 
     int esperados_max[] = { 45, 31, 20, 14, 13, 11, 7, 2 };
@@ -135,12 +144,16 @@ int main() {
 
     while (!max_heap.empty()) {
         int esperado = esperados_max[idx++];
-        int real = max_heap.top();
+        int mi_heap_real = max_heap.top();
+        int std_heap_real = std_max_heap.top();
 
-        std::cout << "Esperado: " << esperado << " | Obtenido: " << real << std::endl;
+        std::cout << "Esperado: " << esperado
+            << " | Mi Heap: " << mi_heap_real
+            << " | STL Heap: " << std_heap_real << std::endl;
 
         max_heap.pop();
+        std_max_heap.pop();
     }
 
     return 0;
-}
+};
