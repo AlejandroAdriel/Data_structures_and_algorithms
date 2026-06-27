@@ -187,7 +187,6 @@ void Graph<N, E>::print()
 }
 
 #include <queue>      // Necesario para el priority queue de Dijkstra
-#include <limits>     // Necesario para simular el valor Infinito (numeric_limits)
 #include <functional> // Necesario para volver el priority queue un min heap con greater
 
 template<typename N, typename E>
@@ -195,18 +194,19 @@ std::vector<int> Graph<N, E>::findPath(int from, int to)
 {
     validateVertex(from);  validateVertex(to);
 
-    /* Algoritmo para encontrar un camino entre 'from' (origen) y 'to' (destino), recorriendo el grafo.
-       Utiliza el Algoritmo de Dijkstra para encontrar el camino con el menor peso acumulado. */
+    /* Algoritmo para encontrar un camino entre 'from' (origen) y 'to' (destino), recorriendo el grafo.   
+    Utiliza el Algoritmo de Dijkstra para encontrar el camino con el menor peso acumulado. */
 
-    E INF = std::numeric_limits<E>::max();
-    std::vector<E> dist(numVertices, INF);
+    std::vector<E> dist(numVertices);
     std::vector<int> parent(numVertices, -1);
+    std::vector<bool> hasDist(numVertices, false); // Rastrea si el nodo ya tiene una distancia válida
 
     // Cola de prioridad: almacena pares de <distancia_acumulada, índice_del_nodo>
     std::priority_queue<std::pair<E, int>, std::vector<std::pair<E, int>>, std::greater<std::pair<E, int>>> pq;
 
-    dist[from] = 0;
-    pq.push({ 0, from });
+    dist[from] = E(); // Constructor por defecto (inicializa en 0 de forma genérica)
+    hasDist[from] = true;
+    pq.push({ dist[from], from }); // Se envía la distancia inicial de origen
 
     while (!pq.empty())
     {
@@ -215,7 +215,7 @@ std::vector<int> Graph<N, E>::findPath(int from, int to)
         pq.pop();
 
         // Si ya encontramos una distancia menor para este nodo, lo ignoramos
-        if (d > dist[u]) continue;
+        if (hasDist[u] && d > dist[u]) continue;
 
         // Si ya llegamos al destino, podemos terminar la búsqueda temprano
         if (u == to) break;
@@ -225,11 +225,14 @@ std::vector<int> Graph<N, E>::findPath(int from, int to)
         {
             int v = edge.to;
             E weight = edge.data;
+            E newDist = d + weight;
 
             // ¿Es mejor pasar por 'u' para llegar a 'v' que lo que teníamos guardado?
-            if (dist[u] + weight < dist[v])
+            // Se evalúa si v no tenía distancia previa asignada, o si la nueva ruta es menor
+            if (!hasDist[v] || newDist < dist[v])
             {
-                dist[v] = dist[u] + weight; // Registramos el nuevo costo mínimo para 'v'
+                dist[v] = newDist;          // Registramos el nuevo costo mínimo para 'v'
+                hasDist[v] = true;
                 parent[v] = u;              // Guardamos que a 'v' se llega mejor desde 'u'
                 pq.push({ dist[v], v });    // Ponemos al vecino en la lista para revisarlo después
             }
@@ -239,7 +242,7 @@ std::vector<int> Graph<N, E>::findPath(int from, int to)
     // Reconstruimos el camino desde el destino hacia el origen
     std::vector<int> path;
 
-    if (dist[to] == INF) return path; // No existe ningún camino accesible
+    if (!hasDist[to]) return path; // No existe ningún camino accesible
 
     for (int curr = to; curr != -1; curr = parent[curr])
     {
@@ -265,18 +268,16 @@ std::vector<int> Graph<N, E>::findPath(int from, int to)
 template<typename N, typename E>
 void Graph<N, E>::precalcAllPaths()
 {
-    /* Algoritmo para computar los caminos entre todos los pares de nodos posibles
-       y almacenarlos en una estructura precomputada. Utiliza el algoritmo de Floyd-Warshall. */
+    /* Algoritmo para computar los caminos entre todos los pares de nodos posibles   
+        y almacenarlos en una estructura precomputada. Utiliza el algoritmo de Floyd-Warshall. */
 
-    E INF = numeric_limits<E>::max() / 2;
-
-    distMatrix.assign(numVertices, vector<E>(numVertices, INF));
-    nextMatrix.assign(numVertices, vector<int>(numVertices, -1));
+    distMatrix.assign(numVertices, std::vector<E>(numVertices, E()));
+    nextMatrix.assign(numVertices, std::vector<int>(numVertices, -1)); // -1 indicará que NO hay ruta conocida
 
     // Paso 1: Inicializar con los caminos directos (aristas base)
     for (int i = 0; i < numVertices; i++)
     {
-        distMatrix[i][i] = 0; // Distancia de un nodo a sí mismo es cero
+        distMatrix[i][i] = E(); // Distancia de un nodo a sí mismo es cero (constructor por defecto)
         nextMatrix[i][i] = i;
 
         for (auto& edge : nodes[i].edges)
@@ -293,10 +294,17 @@ void Graph<N, E>::precalcAllPaths()
         {
             for (int j = 0; j < numVertices; j++)
             {
-                if (distMatrix[i][k] + distMatrix[k][j] < distMatrix[i][j])
+                // Validación de existencia: Solo evaluamos si hay un camino real de 'i' a 'k' y de 'k' a 'j'
+                if (nextMatrix[i][k] != -1 && nextMatrix[k][j] != -1)
                 {
-                    distMatrix[i][j] = distMatrix[i][k] + distMatrix[k][j];
-                    nextMatrix[i][j] = nextMatrix[i][k]; // Mantiene la ruta del siguiente paso
+                    E newDist = distMatrix[i][k] + distMatrix[k][j];
+
+                    // Si no había ninguna ruta previa entre 'i' y 'j', o si la nueva ruta a través de 'k' es más corta
+                    if (nextMatrix[i][j] == -1 || newDist < distMatrix[i][j])
+                    {
+                        distMatrix[i][j] = newDist;
+                        nextMatrix[i][j] = nextMatrix[i][k]; // Mantiene la ruta del siguiente paso
+                    }
                 }
             }
         }
