@@ -8,9 +8,7 @@ Mapped Graph
 #include <vector>
 #include <list>
 #include <cassert>
-#include <cmath>
-#include <queue>     
-#include <functional> 
+ 
 
 using namespace std;
 
@@ -80,13 +78,11 @@ template<typename N, typename E>
 class Graph
 {
 private:
-    int numVertices; //nro de nodos 
+    int numVertices;
     bool directed;
     vector<Node<N, E>> nodes;
 
-    // Estructuras para Floyd-Warshall (precalculado)
-    vector<vector<E>> distMatrix;
-    vector<vector<int>> nextMatrix;
+    
 
 public:
     Graph(bool dir = false);
@@ -99,11 +95,10 @@ public:
     Node<N, E>& getNode(int u);
     int         vertexCount();
     void        print();
-    vector<int> findPath(int from, int to);
-    void        precalcAllPaths();
-    vector<int> findPathFromPreCalc(int from, int to);
     
+    //nuevos metodos
     vector<int> findPathEuclidean(int from, int to);
+    vector<int> findPathAStar(int from, int to);
 
 private:
     void validateVertex(int u);
@@ -202,155 +197,9 @@ void Graph<N, E>::print()
     }
 }
 
-
-
-template<typename N, typename E>
-std::vector<int> Graph<N, E>::findPath(int from, int to)
-{
-    validateVertex(from);  validateVertex(to);
-
-    /* Algoritmo para encontrar un camino entre 'from' (origen) y 'to' (destino), recorriendo el grafo.   
-    Utiliza el Algoritmo de Dijkstra para encontrar el camino con el menor peso acumulado. */
-
-    std::vector<E> dist(numVertices);
-    std::vector<int> parent(numVertices, -1);
-    std::vector<bool> hasDist(numVertices, false); // Rastrea si el nodo ya tiene una distancia válida
-
-    // Cola de prioridad: almacena pares de <distancia_acumulada, índice_del_nodo>
-    std::priority_queue<std::pair<E, int>, std::vector<std::pair<E, int>>, std::greater<std::pair<E, int>>> pq;
-
-    dist[from] = E(); // Constructor por defecto (inicializa en 0 de forma genérica)
-    hasDist[from] = true;
-    pq.push({ dist[from], from }); // Se envía la distancia inicial de origen
-
-    while (!pq.empty())
-    {
-        E d = pq.top().first;
-        int u = pq.top().second;
-        pq.pop();
-
-        // Si ya encontramos una distancia menor para este nodo, lo ignoramos
-        if (hasDist[u] && d > dist[u]) continue;
-
-        // Si ya llegamos al destino, podemos terminar la búsqueda temprano
-        if (u == to) break;
-
-        // Para cada vecino conectado al nodo 'u':
-        for (auto& edge : nodes[u].edges)
-        {
-            int v = edge.to;
-            E weight = edge.data;
-            E newDist = d + weight;
-
-            // ¿Es mejor pasar por 'u' para llegar a 'v' que lo que teníamos guardado?
-            // Se evalúa si v no tenía distancia previa asignada, o si la nueva ruta es menor
-            if (!hasDist[v] || newDist < dist[v])
-            {
-                dist[v] = newDist;          // Registramos el nuevo costo mínimo para 'v'
-                hasDist[v] = true;
-                parent[v] = u;              // Guardamos que a 'v' se llega mejor desde 'u'
-                pq.push({ dist[v], v });    // Ponemos al vecino en la lista para revisarlo después
-            }
-        }
-    }
-
-    // Reconstruimos el camino desde el destino hacia el origen
-    std::vector<int> path;
-
-    if (!hasDist[to]) return path; // No existe ningún camino accesible
-
-    for (int curr = to; curr != -1; curr = parent[curr])
-    {
-        path.push_back(curr);
-    }
-
-    int inicio = 0;
-    int fin = path.size() - 1;
-
-    while (inicio < fin)
-    {
-        int temp = path[inicio];
-        path[inicio] = path[fin];
-        path[fin] = temp;
-
-        inicio++;
-        fin--;
-    }
-
-    return path;
-}
-
-template<typename N, typename E>
-void Graph<N, E>::precalcAllPaths()
-{
-    /* Algoritmo para computar los caminos entre todos los pares de nodos posibles   
-        y almacenarlos en una estructura precomputada. Utiliza el algoritmo de Floyd-Warshall. */
-
-    distMatrix.assign(numVertices, std::vector<E>(numVertices, E()));
-    nextMatrix.assign(numVertices, std::vector<int>(numVertices, -1)); // -1 indicará que NO hay ruta conocida
-
-    // Paso 1: Inicializar con los caminos directos (aristas base)
-    for (int i = 0; i < numVertices; i++)
-    {
-        distMatrix[i][i] = E(); // Distancia de un nodo a sí mismo es cero (constructor por defecto)
-        nextMatrix[i][i] = i;
-
-        for (auto& edge : nodes[i].edges)
-        {
-            distMatrix[i][edge.to] = edge.data;
-            nextMatrix[i][edge.to] = edge.to;
-        }
-    }
-
-    // Paso 2: Floyd-Warshall incorporando nodos intermediarios 'k'
-    for (int k = 0; k < numVertices; k++)
-    {
-        for (int i = 0; i < numVertices; i++)
-        {
-            for (int j = 0; j < numVertices; j++)
-            {
-                // Validación de existencia: Solo evaluamos si hay un camino real de 'i' a 'k' y de 'k' a 'j'
-                if (nextMatrix[i][k] != -1 && nextMatrix[k][j] != -1)
-                {
-                    E newDist = distMatrix[i][k] + distMatrix[k][j];
-
-                    // Si no había ninguna ruta previa entre 'i' y 'j', o si la nueva ruta a través de 'k' es más corta
-                    if (nextMatrix[i][j] == -1 || newDist < distMatrix[i][j])
-                    {
-                        distMatrix[i][j] = newDist;
-                        nextMatrix[i][j] = nextMatrix[i][k]; // Mantiene la ruta del siguiente paso
-                    }
-                }
-            }
-        }
-    }
-}
-
-template<typename N, typename E>
-vector<int> Graph<N, E>::findPathFromPreCalc(int from, int to)
-{
-    /* Recupera el camino precomputado entre 'from' y 'to' en O(1) tiempo secuencial por nodo,
-       asume que la función precalcAllPaths() fue llamada con anterioridad. */
-
-    vector<int> path;
-
-    // Si no hay camino registrado o las matrices están vacías
-    if (nextMatrix.empty() || nextMatrix[from][to] == -1)
-        return path;
-
-    // Reconstrucción del camino usando la matriz de reconstrucción dinámica de rutas
-    int curr = from;
-    path.push_back(curr);
-
-    while (curr != to)
-    {
-        curr = nextMatrix[curr][to];
-        if (curr == -1) return vector<int>(); 
-        path.push_back(curr);
-    }
-
-    return path;
-}
+#include <cmath>
+#include <queue>     
+#include <functional>
 
 template<typename N, typename E>
 std::vector<int> Graph<N, E>::findPathEuclidean(int from, int to)
@@ -424,6 +273,101 @@ std::vector<int> Graph<N, E>::findPathEuclidean(int from, int to)
 }
 
 template<typename N, typename E>
+std::vector<int> Graph<N, E>::findPathAStar(int from, int to)
+{
+    validateVertex(from);  validateVertex(to);
+
+    // g_score[u] guardará la distancia real acumulada desde el inicio hasta 'u'
+    std::vector<double> g_score(numVertices, 0.0);
+    std::vector<int> parent(numVertices, -1);
+    std::vector<bool> hasDist(numVertices, false); 
+
+    // Guardamos las posiciones del punto inicial y destino final para la heurística
+    Point p_destination = nodes[to].data;
+
+    // Min-Heap que almacena pares de <f_score, índice_del_nodo>
+    // Se ordena automáticamente de menor a mayor f_score
+    std::priority_queue<std::pair<double, int>, 
+                        std::vector<std::pair<double, int>>, 
+                        std::greater<std::pair<double, int>>> pq;
+
+    // El g_score inicial del nodo origen es 0
+    g_score[from] = 0.0;
+    hasDist[from] = true;
+
+    // f_score inicial = g_score (0) + h_score (distancia euclidiana directa al destino)
+    Point p_start = nodes[from].data;
+    double initial_h = std::sqrt(std::pow(p_start.x - p_destination.x, 2) + 
+                                  std::pow(p_start.y - p_destination.y, 2));
+    
+    pq.push({ initial_h, from });
+
+    while (!pq.empty())
+    {
+        double current_f = pq.top().first;
+        int u = pq.top().second;
+        pq.pop();
+
+        // Si ya llegamos al destino, el camino óptimo ha sido encontrado
+        if (u == to) break;
+
+        // Para cada vecino 'v' del nodo actual 'u'
+        for (auto& edge : nodes[u].edges)
+        {
+            int v = edge.to;
+            
+            Point p_u = nodes[u].data; 
+            Point p_v = nodes[v].data;
+
+            // 1. Calcular el peso real de la arista (distancia euclidiana u -> v)
+            double weight = std::sqrt(std::pow(p_u.x - p_v.x, 2) + std::pow(p_u.y - p_v.y, 2));
+            
+            // 2. g_score tentativo para el vecino
+            double tentative_g = g_score[u] + weight;
+
+            // Si es la primera vez que alcanzamos a 'v' o encontramos un camino real más corto ($g$)
+            if (!hasDist[v] || tentative_g < g_score[v])
+            {
+                g_score[v] = tentative_g;
+                hasDist[v] = true;
+                parent[v] = u;
+
+                // 3. Calcular la Heurística $h(v)$ desde el vecino hasta el destino final
+                double h_score = std::sqrt(std::pow(p_v.x - p_destination.x, 2) + 
+                                           std::pow(p_v.y - p_destination.y, 2));
+                
+                // 4. El costo total estimado $f(v) = g(v) + h(v)$
+                double f_score = tentative_g + h_score;
+
+                pq.push({ f_score, v });
+            }
+        }
+    }
+
+    // Reconstrucción del camino inverso (idéntica a tus funciones anteriores)
+    std::vector<int> path;
+    if (!hasDist[to]) return path; 
+
+    for (int curr = to; curr != -1; curr = parent[curr])
+    {
+        path.push_back(curr);
+    }
+
+    int inicio = 0;
+    int fin = path.size() - 1;
+    while (inicio < fin)
+    {
+        int temp = path[inicio];
+        path[inicio] = path[fin];
+        path[fin] = temp;
+        inicio++;
+        fin--;
+    }
+
+    return path;
+}
+
+template<typename N, typename E>
 void Graph<N, E>::validateVertex(int u)
 {
     assert(u >= 0 && u < numVertices);
@@ -431,29 +375,71 @@ void Graph<N, E>::validateVertex(int u)
 
 int main()
 {
-    // Grafo donde cada Nodo guarda un Point, y la arista un entero cualquiera
+    // Instanciamos el Grafo usando la estructura Point para los datos del Nodo (N)
+    // y un entero simple para los metadatos de las aristas (E)
     Graph<Point, int> g;
 
-    int a = g.addNode(Point(0, 0));
-    int b = g.addNode(Point(3, 4)); // Distancia geométrica de A a B es 5
-    int c = g.addNode(Point(0, 4));
-    int d = g.addNode(Point(6, 4));
+    // Creamos un mapa de coordenadas (X, Y)
+    // Imaginemos un escenario donde queremos ir de (0,0) a (6,4)
+    int origen    = g.addNode(Point(0.0, 0.0)); // Nodo 0
+    int desvio_ar = g.addNode(Point(2.0, 4.0)); // Nodo 1 (Hacia arriba)
+    int centro    = g.addNode(Point(3.0, 2.0)); // Nodo 2 (Cerca de la línea recta)
+    int desvio_ab = g.addNode(Point(4.0, 0.0)); // Nodo 3 (Hacia abajo)
+    int destino   = g.addNode(Point(6.0, 4.0)); // Nodo 4
 
-    g.addEdge(a, b, 1);
-    g.addEdge(a, c, 1);
-    g.addEdge(c, b, 1);
-    g.addEdge(b, d, 1);
+    // Conectamos los caminos (las aristas)
+    // Nota: El peso entero '1' se ignora porque ambos algoritmos calculan el peso
+    // geométrico real dinámicamente usando std::sqrt y std::pow.
+    g.addEdge(origen, desvio_ar, 1);
+    g.addEdge(origen, centro, 1);
+    g.addEdge(origen, desvio_ab, 1);
 
-    cout << "Estructura del Grafo Geométrico:";
+    g.addEdge(desvio_ar, destino, 1);
+    g.addEdge(centro, destino, 1);
+    g.addEdge(desvio_ab, destino, 1);
+
+    // Conexión interna extra para ver si toman atajos
+    g.addEdge(desvio_ab, centro, 1); 
+
+    cout << "==================================================\n";
+    cout << "   PRUEBA DE ALGORITMOS GEOMÉTRICOS EN GRAFOS     \n";
+    cout << "==================================================\n";
+    cout << "Estructura del Grafo y Coordenadas de los Nodos:\n";
     g.print();
+    cout << "--------------------------------------------------\n";
 
-    vector<int> camino = g.findPathEuclidean(a, d);
-    
-    cout << "\nCamino más corto (Dijkstra Euclidiano): ";
-    for(int idx : camino) {
-        cout << idx << " " << g.getNode(idx).data << " -> ";
+    // 1. PROBAR DIJKSTRA EUCLIDIANO
+    cout << "\n[1] Ejecutando Dijkstra con Distancia Euclidiana...\n";
+    vector<int> caminoDijkstra = g.findPathEuclidean(origen, destino);
+
+    if (caminoDijkstra.empty()) {
+        cout << "Dijkstra: No se encontró un camino disponible.\n";
+    } else {
+        cout << "Camino óptimo encontrado por Dijkstra:\n";
+        for (size_t i = 0; i < caminoDijkstra.size(); ++i) {
+            int idx = caminoDijkstra[i];
+            cout << "Nodo " << idx << " " << g.getNode(idx).data;
+            if (i + 1 < caminoDijkstra.size()) cout << " -> ";
+        }
+        cout << "\n";
     }
-    cout << "FIN\n";
+
+    // 2. PROBAR ALGORITMO A* (A-STAR)
+    cout << "\n[2] Ejecutando Algoritmo A* (A-Star)...\n";
+    vector<int> caminoAStar = g.findPathAStar(origen, destino);
+
+    if (caminoAStar.empty()) {
+        cout << "A*: No se encontró un camino disponible.\n";
+    } else {
+        cout << "Camino óptimo encontrado por A*:\n";
+        for (size_t i = 0; i < caminoAStar.size(); ++i) {
+            int idx = caminoAStar[i];
+            cout << "Nodo " << idx << " " << g.getNode(idx).data;
+            if (i + 1 < caminoAStar.size()) cout << " -> ";
+        }
+        cout << "\n";
+    }
+    cout << "==================================================\n";
 
     return 0;
 }
